@@ -3,8 +3,8 @@ import streamlit as st
 
 # ── Page config (must be first Streamlit call) ──────────────────────
 st.set_page_config(
-    page_title="DS4E — ML Prediction App",
-    page_icon="🎓",
+    page_title="Car Sustainability Predictor",
+    page_icon="🚘",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -14,12 +14,12 @@ st.markdown("""
 <style>
     /* NYU purple accent */
     :root {
-        --nyu-purple: #57068C;
-        --nyu-purple-light: #8900E1;
+        --sky-blue: #37ddfa;
+        --earth-green: #4bc920;
     }
     .stApp > header {background-color: transparent;}
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #57068C 0%, #330042 100%);
+        background: linear-gradient(180deg, #37ddfa 0%, #32bd04 100%);
     }
     [data-testid="stSidebar"] * {color: white !important;}
     [data-testid="stSidebar"] code {
@@ -32,7 +32,7 @@ st.markdown("""
     [data-testid="stSidebar"] .stSelectbox label,
     [data-testid="stSidebar"] .stMultiSelect label {color: white !important;}
     .metric-card {
-        background: #f8f4fc;
+        background: #127087;
         border-left: 4px solid #57068C;
         padding: 1rem 1.2rem;
         border-radius: 8px;
@@ -75,12 +75,15 @@ PAGES = {
 }
 
 with st.sidebar:
-    st.markdown("## 🎓 DS4E @ NYU")
+    st.markdown("## 🎓 Car Sustainability Predictor")
     st.markdown("---")
     selected = st.radio("Navigate", list(PAGES.keys()), label_visibility="collapsed")
     st.markdown("---")
-    st.caption("DS-UA 9111 · Prof. Gaëtan Brison")
-    st.caption("© 2026 NYU Data Science for Everyone")
+    st.caption("Matthew Hill, Dylan Wu,")
+    st.caption("Gareth Liu, Ricky Lim")
+    st.markdown("---")
+    st.caption("Summer 2026 ")
+    st.caption("NYU Principles of Data Science I")
 
 # ── Render selected page ────────────────────────────────────────────
 PAGES[selected].render()
