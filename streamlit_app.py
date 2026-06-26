@@ -105,9 +105,26 @@ st.markdown("##### 📈 Summary Statistics")
 if st.button("Show Original Dataset Stats"):
     st.dataframe(df.describe())
 
+
+# Removed electric cars which are all the ones with missing values
+st.markdown("##### NO ELECTRIC CAR DATASET")
 df_noelectric = df.dropna()
 st.write(df_noelectric.columns)
 st.write(df_noelectric["Greenhouse Gas Score"].value_counts().sort_index())
+st.write(df_noelectric.shape)
+
+st.markdown("##### Missing values of Only Gas Cars")
+missing = df_noelectric.isnull().sum()
+st.write(missing)
+
+if missing.sum() == 0:
+    st.success("✅ No missing values found")
+else:
+    st.warning("⚠️ You have missing values")
+        
+st.markdown("##### 📈 Summary Statistics of only Gas Cars")
+if st.button("Show Updated Dataset Stats"):
+    st.dataframe(df_noelectric.describe())
 
 # ── Render selected page ────────────────────────────────────────────
 PAGES[selected].render()
