@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from sklearn.preprocessing import LabelEncoder
 
 def render():
     st.title("This is the classification model page")
