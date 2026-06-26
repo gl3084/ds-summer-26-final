@@ -1,5 +1,5 @@
-
 import streamlit as st
+import pandas as pd
 
 # ── Page config (must be first Streamlit call) ──────────────────────
 st.set_page_config(
@@ -84,6 +84,30 @@ with st.sidebar:
     st.markdown("---")
     st.caption("Summer 2026 ")
     st.caption("NYU Principles of Data Science I")
+
+
+# ── Set up dataset ────────────────────────────────────────────
+df = pd.read_excel("CO2.xlsx")
+st.dataframe(df.head(5))
+
+st.write(df.shape)
+
+st.markdown("##### Missing values")
+missing = df.isnull().sum()
+st.write(missing)
+
+if missing.sum() == 0:
+    st.success("✅ No missing values found")
+else:
+    st.warning("⚠️ You have missing values")
+        
+st.markdown("##### 📈 Summary Statistics")
+if st.button("Show Original Dataset Stats"):
+    st.dataframe(df.describe())
+
+df_noelectric = df.dropna()
+st.write(df_noelectric.columns)
+st.write(df_noelectric["Greenhouse Gas Score"].value_counts().sort_index())
 
 # ── Render selected page ────────────────────────────────────────────
 PAGES[selected].render()

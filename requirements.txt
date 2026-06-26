@@ -13,3 +13,4 @@ streamlit-option-menu
 Pillow
 wandb
 python-dotenv
+openpyxl
