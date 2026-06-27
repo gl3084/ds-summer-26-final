@@ -46,7 +46,7 @@ def render():
     
 
     # Display the category distribution
-    st.subheader("Category Distribution")
+    st.subheader("📊 Category Distribution")
     category_counts = df["Greenhouse Category"].value_counts().reindex(["Low", "Moderate", "High"]).reset_index()
     category_counts.columns = ["Greenhouse Category", "Count"]
     st.dataframe(category_counts, use_container_width=True, hide_index=True)
@@ -77,10 +77,12 @@ def render():
 
 
     # Encode categorical columns
+    encoders = {}
     categorical_cols = model_df.select_dtypes(include=["object"]).columns
     for col in categorical_cols:
         le = LabelEncoder()
         model_df[col] = le.fit_transform(model_df[col])
+        encoders[col] = le
     X = model_df
 
     target_encoder = LabelEncoder()
@@ -88,7 +90,7 @@ def render():
 
 
     # Let user control
-    st.subheader("Select Features to Train Model")
+    st.subheader("👇 Select Features to Train Model")
 
     col1, col2, = st.columns([3,1])
     with col1:
@@ -97,24 +99,30 @@ def render():
     with col2:
         test_size = st.slider("Test Size (%)", min_value=10, max_value=40, value=20)
 
+
     # Train model
     X_selected = X[selected_features]
     X_train, X_test, y_train, y_test = train_test_split(X_selected, y, test_size=(test_size/100), random_state=42, stratify=y)
-    
+
+
+    # Sample data
     st.write(f"Training set: {len(X_train):,} samples &nbsp;&nbsp;|&nbsp;&nbsp;"
              f"Test set: {len(X_test):,} samples")
-    train_button = st.button("🚀 Train Decision Tree Model", use_container_width=True)
+    
 
-    if train_button:
-        if len(selected_features) == 0:
-            st.warning("⚠️ Please select at least one explanatory variable.")
+    if len(selected_features) == 0:
+        st.warning("⚠️ Please select at least one explanatory variable.")
 
-        else:   
-            # Create Decision Tree    
-            tree = DecisionTreeClassifier(max_depth=4, random_state=42)
-            tree.fit(X_train, y_train)
-            y_pred = tree.predict(X_test)
+    else:   
+        train_button = st.button("🚀 Train Decision Tree Model", use_container_width=True)
 
+        # Create decision tree
+        tree = DecisionTreeClassifier(max_depth=4, random_state=42)
+        tree.fit(X_train, y_train)
+        y_pred = tree.predict(X_test)
+
+        if train_button:
+            # Results
             st.subheader("🎯 Model Performace")
             accuracy = metrics.accuracy_score(y_test, y_pred)
             st.success(f"Accuracy: {accuracy:.2%}")
@@ -151,3 +159,40 @@ def render():
             ax2.set_ylabel("Feature")
             ax2.set_title("Top Feature Importances")
             st.pyplot(fig2)
+
+        
+        # User's vehicle
+        st.divider()
+        st.subheader("🚗 Try Your Own Vehicle")
+        st.write("Enter your vehicle's specifications below to predict its greenhouse performance category.")
+
+        user_car = {}
+        col3, col4 = st.columns(2)
+
+        for col in selected_features:
+            if col in categorical_cols:
+                with col3:
+                    user_car[col] = st.selectbox(col, df[col].unique())
+            else:
+                with col4:
+                    user_car[col] = st.number_input(col, value=float(df[col]. median()))
+
+        user_button = st.button("🔮 Predict Greenhouse Category", use_container_width=True)
+
+        if user_button:
+            user_df = pd.DataFrame([user_car])
+
+            for col in user_df.columns:
+                if col in encoders:
+                    user_df[col] = encoders[col].transform(user_df[col])
+
+            prediction = tree.predict(user_df)
+            predicted_category = target_encoder.inverse_transform(prediction)[0]
+
+            st.subheader("🌍 Predicted Greenhouse Category")
+            if predicted_category == "Low":
+                st.error(f"{predicted_category} Greenhouse Performance 🏭\n\nThis vehicle has a relatively high greenhouse gas impact compared to other vehicles.")
+            elif predicted_category == "Moderate":
+                st.warning(f"{predicted_category} Greenhouse Performance 😐\n\nThis vehicle has an average greenhouse gas impact compared to other vehicles.")
+            else:
+                st.success(f"{predicted_category} Greenhouse Performance ♻️\n\nThis vehicle has a relatively low greenhouse gas impact compared to other vehicles.")
