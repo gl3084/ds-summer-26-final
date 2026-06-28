@@ -30,7 +30,21 @@ def render():
 
     df_noelectric["Manufacturer"] = df_noelectric["Model"].apply(get_manufacturer)
 
-    # Let the user choose a column
+
+
+
+    # ---- SHARED COLOR MAPPING FOR VEHICLE CLASS (used by both charts) ----
+    veh_classes = sorted(df_noelectric["Veh Class"].unique())
+    palette_colors = sns.color_palette("tab20", n_colors=len(veh_classes))
+    class_color_map = dict(zip(veh_classes, palette_colors))
+
+
+
+
+
+
+
+    # Let the user choose a column.      GET RID OF THIS THING!!! i don't need a customizable pie chart selector.
     column = st.selectbox("Choose a column", df_noelectric.columns)
 
     counts = (
@@ -117,17 +131,118 @@ def render():
 
     st.dataframe(brand_summary, use_container_width=True)
 
+
+
+
+
     st.markdown("**Why do some brands look worse on CO2? Let's check vehicle class.**")
 
-    fig_box = px.box(
-        df_noelectric,
-        x="Vehicle Class",
+    fig, ax = plt.subplots(figsize=(10, 5))
+    sns.boxplot(
+        x="Veh Class",
         y="Comb CO2",
-        title="Comb CO2 Distribution by Vehicle Class",
-        points="outliers",
+        data=df_noelectric,
+        hue="Veh Class",
+        palette=class_color_map,
+        ax=ax,
+        legend=False,
     )
-    fig_box.update_layout(xaxis_tickangle=-45)
-    st.plotly_chart(fig_box, use_container_width=True, key="box_co2_by_class")
+    ax.set_title("Comb CO2 Distribution by Vehicle Class")
+    ax.set_xlabel("Vehicle Class")
+    ax.set_ylabel("Combined CO2 (g/mi)")
+    plt.xticks(rotation=45, ha="right")
+
+    st.pyplot(fig)
+
+
+
+
+
+
+
+
+
+    # Only keep brands with at least N vehicles in the dataset (filters out 1-2 car exotic brands)
+    min_vehicles = 5
+    brand_counts = df_noelectric["Manufacturer"].value_counts()
+    valid_brands = brand_counts[brand_counts >= min_vehicles].index
+
+    df_filtered = df_noelectric[df_noelectric["Manufacturer"].isin(valid_brands)]
+
+    composition = (
+        pd.crosstab(df_filtered["Manufacturer"], df_filtered["Veh Class"], normalize="index")
+        * 100
+    )
+
+    co2_order = (
+        df_filtered.groupby("Manufacturer")["Comb CO2"]
+        .mean()
+        .sort_values(ascending=False)
+        .index
+    )
+    composition = composition.loc[co2_order]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    st.markdown("**Brand composition by vehicle class** — see which brands lean toward higher-emission classes")
+
+    # Build a % composition table: rows = Manufacturer, cols = Veh Class
+    composition = (
+        pd.crosstab(df_noelectric["Manufacturer"], df_noelectric["Veh Class"], normalize="index")
+        * 100
+    )
+
+    co2_order = (
+        df_noelectric.groupby("Manufacturer")["Comb CO2"]
+        .mean()
+        .sort_values(ascending=False)
+        .index
+    )
+    composition = composition.loc[co2_order]
+
+    # Build the color list in the SAME column order as `composition`
+    bar_colors = [class_color_map[col] for col in composition.columns]
+
+    fig, ax = plt.subplots(figsize=(10, 12))
+    composition.plot(
+        kind="barh",
+        stacked=True,
+        ax=ax,
+        color=bar_colors,
+        width=0.8,
+    )
+    ax.set_title("Vehicle Class Composition by Brand (sorted by avg Comb CO2, high to low)")
+    ax.set_xlabel("% of Brand's Lineup")
+    ax.set_ylabel("Manufacturer")
+    ax.legend(title="Vehicle Class", bbox_to_anchor=(1.05, 1), loc="upper left")
+    ax.invert_yaxis()
+
+    st.pyplot(fig)
+
+
+
+
+
+
+
+
+
+
+
 
     # ---- IDEA 2: SCATTER - DISPLACEMENT VS COMB CO2, COLORED BY CYLINDERS ----
     st.subheader("Fleet Diagnostic: Displacement vs CO2")
