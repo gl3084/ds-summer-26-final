@@ -10,7 +10,57 @@ df_noelectric = df.dropna()
 def render():
     st.title("Data Visualization")
 
-    st.write(df_noelectric.describe())
+    # ── Numeric variable stats explorer ────────────────────────────────────
+    st.markdown("### 📊 Variable Statistics Explorer")
+
+    # CSS for metric cards (insert here, before the cards are rendered)
+    st.markdown("""
+    <style>
+    .metric-card {
+        background: #37ddfa;
+        border-left: 5px solid #4bc920;
+        border-radius: 8px;
+        padding: 12px;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .metric-card h3 {
+        font-size: 13px;
+        color: white;
+        margin-bottom: 4px;
+    }
+    .metric-card p {
+        font-size: 20px;
+        font-weight: bold;
+        color: white;
+        margin: 0;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    numeric_vars = df_noelectric.select_dtypes(include="number").columns.tolist()
+    selected_var = st.selectbox("Choose a numerical variable", numeric_vars)
+
+    stats = df_noelectric[selected_var].describe()
+
+    stat_labels = ["mean", "std", "min", "25%", "50%", "75%", "max"]
+    cols = st.columns(len(stat_labels))
+
+    for col, stat_name in zip(cols, stat_labels):
+        with col:
+            st.markdown(f"""
+            <div class="metric-card">
+                <h3>{stat_name.upper()}</h3>
+                <p>{stats[stat_name]:.2f}</p>
+            </div>""", unsafe_allow_html=True)
+
+    st.markdown("---")
+
+
+
+
+
+
 
     # CONDENCING EACH ENTRY BY BRAND
     multi_word_brands = [
@@ -44,24 +94,6 @@ def render():
 
 
 
-    # Let the user choose a column.      GET RID OF THIS THING!!! i don't need a customizable pie chart selector.
-    column = st.selectbox("Choose a column", df_noelectric.columns)
-
-    counts = (
-        df_noelectric[column]
-        .value_counts(dropna=False)
-        .reset_index()
-    )
-    counts.columns = [column, "Count"]
-
-    fig = px.pie(
-        counts,
-        names=column,
-        values="Count",
-        title=f"Composition of {column}",
-    )
-    fig.update_traces(textposition="inside", textinfo="percent+label")
-    st.plotly_chart(fig, use_container_width=True)
 
     # ---- THIS WAS MISSING: define make_pie before using it ----
     def make_pie(col_name, key_suffix=""):
@@ -298,25 +330,104 @@ def render():
     st.pyplot(fig)
 
 
+    # ── Top correlations with target (two columns) ────────────────────────────────
+    def show_top_correlations(target_col, corr_matrix):
+        target_corr = corr_matrix[target_col].drop(target_col).abs().sort_values(ascending=False)
+        st.markdown(f"**Top features correlated with `{target_col}`:**")
+        for feat, val in target_corr.head(5).items():
+            direction = "+" if corr_matrix.loc[feat, target_col] > 0 else "−"
+            bar_width = int(val * 100)
+            st.markdown(
+                f"- **{feat}** → {direction}{val:.3f} "
+                f'<span style="display:inline-block;height:10px;width:{bar_width}px;'
+                f'background:#57068C;border-radius:4px;"></span>',
+                unsafe_allow_html=True,
+            )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        show_top_correlations("Comb CO2", corr)
+
+    with col2:
+        show_top_correlations("Greenhouse Gas Score", corr)
+
+    st.markdown("---")
 
 
 
-    # ---- IDEA 2: SCATTER - DISPLACEMENT VS COMB CO2, COLORED BY CYLINDERS ----
-    st.subheader("Fleet Diagnostic: Displacement vs CO2")
 
-    fig_scatter = px.scatter(
-        df_noelectric,
-        x="Displ",
-        y="Comb CO2",
-        color="Cyl",
-        trendline="ols",
-        title="Engine Displacement vs Comb CO2 (colored by Cylinders)",
-        labels={"Displ": "Displacement (L)", "Comb CO2": "Combined CO2 (g/mi)"},
-        opacity=0.6,
+    # ── Target + feature setup ────────────────────────────────────
+    target = st.selectbox("Choose target variable", ["Comb CO2", "Greenhouse Gas Score"])
+
+    features = [
+        "Displ", "Cyl", "City MPG", "Hwy MPG", "Cmb MPG",
+        "Air Pollution Score", "Greenhouse Gas Score", "Comb CO2"
+    ]
+    # Remove the target itself from the feature list, in case it's in there
+    features = [f for f in features if f != target]
+
+
+    
+    # ── 4. Scatter plot explorer ────────────────────────────────────
+    st.markdown("### 🔗 Feature vs Target Explorer")
+    col_a, col_b = st.columns(2)
+    with col_a:
+        x_feat = st.selectbox("X-axis feature", features, index=0)
+    with col_b:
+        color_feat = st.selectbox(
+            "Color by (optional)", ["None"] + features, index=0
+        )
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    if color_feat == "None":
+        sns.scatterplot(
+            data=df_noelectric,
+            x=x_feat,
+            y=target,
+            alpha=0.5,
+            color="purple",
+            ax=ax,
+        )
+    elif pd.api.types.is_numeric_dtype(df_noelectric[color_feat]):
+        # Continuous color variable — use a colorbar scatter
+        scatter = ax.scatter(
+            df_noelectric[x_feat],
+            df_noelectric[target],
+            c=df_noelectric[color_feat],
+            cmap="Purples",
+            alpha=0.5,
+        )
+        cbar = fig.colorbar(scatter, ax=ax)
+        cbar.set_label(color_feat)
+    else:
+        # Categorical color variable — use hue
+        sns.scatterplot(
+            data=df_noelectric,
+            x=x_feat,
+            y=target,
+            hue=color_feat,
+            palette="Purples",
+            alpha=0.6,
+            ax=ax,
+        )
+        ax.legend(title=color_feat, bbox_to_anchor=(1.05, 1), loc="upper left")
+
+    # Trendline (no statsmodels needed)
+    sns.regplot(
+        data=df_noelectric,
+        x=x_feat,
+        y=target,
+        scatter=False,
+        color="black",
+        line_kws={"linewidth": 2, "linestyle": "--"},
+        ax=ax,
     )
-    st.plotly_chart(fig_scatter, use_container_width=True, key="scatter_displ_co2")
 
-    st.caption(
-        "Displacement and cylinder count show a strong relationship with CO2 output — "
-        "this is part of why these features are used in the prediction model on the next page."
-    )
+    ax.set_title(f"{x_feat} vs {target}")
+    ax.set_xlabel(x_feat)
+    ax.set_ylabel(target)
+
+    st.pyplot(fig)
+    st.markdown("---")
