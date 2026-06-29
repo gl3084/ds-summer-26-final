@@ -9,6 +9,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import cross_val_score
 from sklearn.inspection import permutation_importance
+from sklearn.tree import plot_tree
 
 
 def render():
@@ -143,6 +144,12 @@ def render():
         y_pred = tree.predict(X_test)
 
         if train_button:
+            st.divider()
+            with st.expander("View Decision Tree Structure"):
+                fig3, ax3 = plt.subplots(figsize=(18,10))
+                plot_tree(tree, feature_names=X_selected.columns, class_names=target_encoder.classes_, filled=True, rounded=True, fontsize=8)
+                st.pyplot(fig3)
+
             # Results
             st.subheader("🎯 Model Performace")
             accuracy = metrics.accuracy_score(y_test, y_pred)
@@ -189,7 +196,7 @@ def render():
                 st.subheader("🧮 Permutation Importance")
                 st.write("Measures how much the model score decreases when a feature's values are randomly shuffled")
                 perm = permutation_importance(tree, X_test, y_test, n_repeats=10, random_state=42)
-                perm_df = pd.DataFrame({"Feature": X.columns, "Importance": perm.importances_mean})
+                perm_df = pd.DataFrame({"Feature": X_selected.columns, "Importance": perm.importances_mean})
                 perm_df = perm_df.sort_values(by="Importance", ascending=False)
                 st.dataframe(perm_df)
 
