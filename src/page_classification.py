@@ -8,6 +8,7 @@ from sklearn import metrics
 from sklearn.preprocessing import LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import cross_val_score
+from sklearn.inspection import permutation_importance
 
 
 def render():
@@ -168,17 +169,36 @@ def render():
             st.pyplot(fig)
 
 
-            # Feature Importance
-            st.subheader("📌 Top Feature Importances")
-            importance_df = pd.DataFrame({"Feature": X_selected.columns, "Importance": tree.feature_importances_}).sort_values(by="Importance", ascending=False)
+            tab1, tab2 = st.tabs(["📌 Model Importance", "🧮 Permutation Importance"])
+            with tab1:
+                # Feature Importance
+                st.subheader("📌 Top Feature Importances")
+                st.write("Measures how much each feature contributes to reducing impurity across decision tree")
+                importance_df = pd.DataFrame({"Feature": X_selected.columns, "Importance": tree.feature_importances_}).sort_values(by="Importance", ascending=False)
 
-            st.dataframe(importance_df, use_container_width=True)
-            fig2, ax2 = plt.subplots(figsize = (7,5))
-            ax2.barh(importance_df["Feature"], importance_df["Importance"])
-            ax2.set_xlabel("Importance")
-            ax2.set_ylabel("Feature")
-            ax2.set_title("Top Feature Importances")
-            st.pyplot(fig2)
+                st.dataframe(importance_df, use_container_width=True)
+                fig2, ax2 = plt.subplots(figsize = (7,5))
+                ax2.barh(importance_df["Feature"], importance_df["Importance"])
+                ax2.set_xlabel("Importance")
+                ax2.set_ylabel("Feature")
+                ax2.set_title("Top Model Importances")
+                st.pyplot(fig2)
+
+            with tab2:
+                # Permutation Importance
+                st.subheader("🧮 Permutation Importance")
+                st.write("Measures how much the model score decreases when a feature's values are randomly shuffled")
+                perm = permutation_importance(tree, X_test, y_test, n_repeats=10, random_state=42)
+                perm_df = pd.DataFrame({"Feature": X.columns, "Importance": perm.importances_mean})
+                perm_df = perm_df.sort_values(by="Importance", ascending=False)
+                st.dataframe(perm_df)
+
+                fig2, ax2 = plt.subplots(figsize = (7,5))
+                ax2.barh(perm_df["Feature"], perm_df["Importance"])
+                ax2.set_xlabel("Mean Importance Decrease")
+                ax2.set_ylabel("Feature")
+                ax2.set_title("Top Permutation Importances")
+                st.pyplot(fig2)
 
         
         # User's vehicle
