@@ -32,6 +32,26 @@ def render():
     df = df[df["Fuel"] != "Hydrogen"]
     df = df[df["Fuel"] != "Electricity/Hydrogen"]
 
+
+    # CONDENCING EACH ENTRY BY BRAND
+    multi_word_brands = [
+        "ALFA ROMEO",
+        "ASTON MARTIN",
+        "LAND ROVER",
+        "ROLLS ROYCE",
+        "MERCEDES-BENZ",
+    ]
+
+    def get_manufacturer(Model):
+        Model = str(Model)
+        for brand in multi_word_brands:
+            if Model.startswith(brand):
+                return brand
+        return Model.split()[0]
+
+    df["Manufacturer"] = df["Model"].apply(get_manufacturer)
+
+
     def greenhouse_category(score):
         if score <= 4:
             return "Low"
