@@ -238,7 +238,28 @@ def render():
 
 
 
+    
 
+
+
+
+
+    st.subheader("Distribution of Greenhouse Gas Score")
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    sns.histplot(
+        data=df_noelectric,
+        x="Greenhouse Gas Score",
+        bins=10,
+        kde=True,
+        ax=ax,
+        color="steelblue",
+    )
+    ax.set_title("Distribution of Greenhouse Gas Score")
+    ax.set_xlabel("Greenhouse Gas Score")
+    ax.set_ylabel("Count")
+
+    st.pyplot(fig)
 
 
 
