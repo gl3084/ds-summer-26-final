@@ -264,6 +264,42 @@ def render():
 
 
 
+    # CONVERTING / INTO REGULAR MPG AVERAGE.
+    def parse_mpg(value):
+        value = str(value)
+        if "/" in value:
+            parts = value.split("/")
+            try:
+                nums = [float(p) for p in parts]
+                return sum(nums) / len(nums)
+            except ValueError:
+                return None
+        try:
+            return float(value)
+        except ValueError:
+            return None
+
+    # Apply to any MPG column that might have this issue
+    for col in ["City MPG", "Hwy MPG", "Cmb MPG"]:
+        df_noelectric[col] = df_noelectric[col].apply(parse_mpg)
+
+
+    st.subheader("Feature Correlation Heatmap")
+
+    numeric_cols = ["Displ", "Cyl", "City MPG", "Hwy MPG", "Cmb MPG",
+                    "Air Pollution Score", "Greenhouse Gas Score", "Comb CO2"]
+
+    corr = df_noelectric[numeric_cols].corr()
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", center=0, ax=ax)
+    ax.set_title("Correlation Between Numeric Features")
+
+    st.pyplot(fig)
+
+
+
+
 
     # ---- IDEA 2: SCATTER - DISPLACEMENT VS COMB CO2, COLORED BY CYLINDERS ----
     st.subheader("Fleet Diagnostic: Displacement vs CO2")
