@@ -116,12 +116,71 @@ def render():
     X_train, X_test, y_train, y_test = train_test_split(X_selected, y, test_size=(test_size/100), random_state=42, stratify=y)
 
 
-    # THIS IS WHERE PARAMETERS CAN BE CHANGED (ADD USER INPUT BEFORE SO THAT YOU CAN DO: tree = DecisionTreeClassifier(criterion=criterion, max_depth=max_depth, etc.))
-    tree = DecisionTreeClassifier(max_depth=4, random_state=42)
+    st.markdown("---")
+    st.subheader("🌲 Tweak Decision Tree Hyperparameters")
+    st.caption("Test different depth values and amount of data allowed in each leaf, and compare splitting criteria.")
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        criterion = st.selectbox(
+            "Splitting Criterion",
+            options=["gini", "entropy", "log_loss"],
+            help="Gini measures impurity; entropy/log_loss measure information gain."
+        )
+    with col2:
+        max_depth = st.slider("Max Tree Depth (max_depth)", min_value=1, max_value=20, value=4)
+    with col3:
+        min_samples_leaf = st.slider("Min Samples per Leaf (min_samples_leaf)", min_value=1, max_value=50, value=1)
+
+    st.markdown("##### 🔁 Cross-Validation Settings")
+    col4, col5 = st.columns(2)
+    with col4:
+        cv_folds = st.slider("CV Folds (k)", min_value=2, max_value=10, value=5)
+    with col5:
+        n_trials = st.slider("Number of Trials", min_value=1, max_value=20, value=5,
+                              help="Repeats CV with different random splits to show variance in accuracy.")
+
+    run_tuning = st.button("🚀 Run Tuning Experiment & Log Metrics")
+
+    # Train final model on the single train/test split using selected hyperparameters
+    tree = DecisionTreeClassifier(
+        criterion=criterion,
+        max_depth=max_depth,
+        min_samples_leaf=min_samples_leaf,
+        random_state=42
+    )
     tree.fit(X_train, y_train)
     y_pred = tree.predict(X_test)
 
-
-    st.subheader("🎯 Model Performace")
+    st.subheader("🎯 Model Performance")
     accuracy = metrics.accuracy_score(y_test, y_pred)
     st.success(f"Accuracy: {accuracy:.2%}")
+
+    # Run repeated cross-validation across the selected number of trials
+    st.subheader("📊 Cross-Validation Results")
+    trial_means = []
+    for trial in range(n_trials):
+        cv_tree = DecisionTreeClassifier(
+            criterion=criterion,
+            max_depth=max_depth,
+            min_samples_leaf=min_samples_leaf,
+            random_state=trial  # vary the seed each trial
+        )
+        scores = cross_val_score(cv_tree, X_selected, y, cv=cv_folds)
+        trial_means.append(scores.mean())
+
+    cv_results_df = pd.DataFrame({
+        "Trial": range(1, n_trials + 1),
+        "Mean CV Accuracy": trial_means
+    })
+
+    col6, col7 = st.columns([1, 2])
+    with col6:
+        st.metric("Avg Accuracy Across Trials", f"{sum(trial_means)/len(trial_means):.2%}")
+        st.metric("Std Dev Across Trials", f"{pd.Series(trial_means).std():.4f}")
+    with col7:
+        fig, ax = plt.subplots(figsize=(6, 3))
+        sns.lineplot(data=cv_results_df, x="Trial", y="Mean CV Accuracy", marker="o", ax=ax)
+        ax.set_ylim(0, 1)
+        ax.set_title(f"{cv_folds}-Fold CV Accuracy Across {n_trials} Trials")
+        st.pyplot(fig)
