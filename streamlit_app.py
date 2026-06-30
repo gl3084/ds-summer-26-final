@@ -84,14 +84,13 @@ st.markdown("""
 
 
 # ── Navigation ──────────────────────────────────────────────────────
-from src import page_intro, page_visualization, page_prediction, page_classification, page_explainability, page_tuning
+from src import page_intro, page_visualization, page_prediction, page_classification, page_tuning
 
 PAGES = {
     "🏠 Introduction & Data": page_intro,
     "📊 Data Visualization": page_visualization,
     "🤖 Model Prediction": page_prediction,
     "📦 Classification Model Prediction": page_classification,
-    "🔍 Explainability (SHAP)": page_explainability,
     "⚙️ Hyperparameter Tuning": page_tuning,
 }
 
