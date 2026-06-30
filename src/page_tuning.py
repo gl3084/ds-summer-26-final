@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import wandb
 
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
@@ -120,6 +121,13 @@ def render():
     st.subheader("🌲 Tweak Decision Tree Hyperparameters")
     st.caption("Test different depth values and amount of data allowed in each leaf, and compare splitting criteria.")
 
+    #W&B log
+    log_wandb = st.checkbox("Log runs to Weights & Biases", value=False)
+    if log_wandb:
+        wandb_project = st.text_input("W&B Project Name", value="car-sustainability-tuning")
+        wandb_entity = st.text_input("W&B Entity", value="")
+        wandb_api = st.text_input("W&B API Key", value="", type="password")
+
     col1, col2, col3 = st.columns(3)
     with col1:
         criterion = st.selectbox(
@@ -141,46 +149,69 @@ def render():
                               help="Repeats CV with different random splits to show variance in accuracy.")
 
     run_tuning = st.button("🚀 Run Tuning Experiment & Log Metrics")
-
-    # Train final model on the single train/test split using selected hyperparameters
-    tree = DecisionTreeClassifier(
-        criterion=criterion,
-        max_depth=max_depth,
-        min_samples_leaf=min_samples_leaf,
-        random_state=42
-    )
-    tree.fit(X_train, y_train)
-    y_pred = tree.predict(X_test)
-
-    st.subheader("🎯 Model Performance")
-    accuracy = metrics.accuracy_score(y_test, y_pred)
-    st.success(f"Accuracy: {accuracy:.2%}")
-
-    # Run repeated cross-validation across the selected number of trials
-    st.subheader("📊 Cross-Validation Results")
-    trial_means = []
-    for trial in range(n_trials):
-        cv_tree = DecisionTreeClassifier(
+    if run_tuning:
+        # Train final model on the single train/test split using selected hyperparameters
+        tree = DecisionTreeClassifier(
             criterion=criterion,
             max_depth=max_depth,
             min_samples_leaf=min_samples_leaf,
-            random_state=trial  # vary the seed each trial
+            random_state=42
         )
-        scores = cross_val_score(cv_tree, X_selected, y, cv=cv_folds)
-        trial_means.append(scores.mean())
+        tree.fit(X_train, y_train)
+        y_pred = tree.predict(X_test)
 
-    cv_results_df = pd.DataFrame({
-        "Trial": range(1, n_trials + 1),
-        "Mean CV Accuracy": trial_means
-    })
+        st.subheader("🎯 Model Performance")
+        accuracy = metrics.accuracy_score(y_test, y_pred)
+        st.success(f"Accuracy: {accuracy:.2%}")
 
-    col6, col7 = st.columns([1, 2])
-    with col6:
-        st.metric("Avg Accuracy Across Trials", f"{sum(trial_means)/len(trial_means):.2%}")
-        st.metric("Std Dev Across Trials", f"{pd.Series(trial_means).std():.4f}")
-    with col7:
-        fig, ax = plt.subplots(figsize=(6, 3))
-        sns.lineplot(data=cv_results_df, x="Trial", y="Mean CV Accuracy", marker="o", ax=ax)
-        ax.set_ylim(0, 1)
-        ax.set_title(f"{cv_folds}-Fold CV Accuracy Across {n_trials} Trials")
-        st.pyplot(fig)
+        # Run repeated cross-validation across the selected number of trials
+        st.subheader("📊 Cross-Validation Results")
+        trial_means = []
+        for trial in range(n_trials):
+            cv_tree = DecisionTreeClassifier(
+                criterion=criterion,
+                max_depth=max_depth,
+                min_samples_leaf=min_samples_leaf,
+                random_state=trial  # vary the seed each trial
+            )
+            scores = cross_val_score(cv_tree, X_selected, y, cv=cv_folds)
+            trial_means.append(scores.mean())
+
+        cv_results_df = pd.DataFrame({
+            "Trial": range(1, n_trials + 1),
+            "Mean CV Accuracy": trial_means
+        })
+
+        col6, col7 = st.columns([1, 2])
+        with col6:
+            st.info(f"**Avg Accuracy Across Trials:** {sum(trial_means)/len(trial_means):.2%}")
+            st.info(f"**Std Dev Across Trials:** {pd.Series(trial_means).std():.4f}")
+        with col7:
+            fig, ax = plt.subplots(figsize=(6, 3))
+            sns.lineplot(data=cv_results_df, x="Trial", y="Mean CV Accuracy", marker="o", ax=ax)
+            ax.set_ylim(0, 1)
+            ax.set_title(f"{cv_folds}-Fold CV Accuracy Across {n_trials} Trials")
+            st.pyplot(fig)
+
+
+        #W&B Actual Log
+        if log_wandb:
+            if wandb_api:
+                wandb.login(key=wandb_api)
+            
+            run = wandb.init(project=wandb_project, entity=wandb_entity if wandb_entity != "" else None,
+                config={"criterion": criterion, "max_depth": max_depth, "min_samples_leaf": min_samples_leaf, "cv_folds": cv_folds, "n_trials": n_trials}
+            )
+            
+            wandb.log({
+                "test_accuracy": accuracy,
+                "avg_cv_accuracy": sum(trial_means)/len(trial_means),
+                "std_cv_accuracy": pd.Series(trial_means).std(),
+                "tree_depth": tree.get_depth(),
+                "num_leaves": tree.get_n_leaves()
+            })
+
+            wandb.finish()
+
+            st.success("Successfully logged run to Weights & Biases!")
+
