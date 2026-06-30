@@ -12,28 +12,30 @@ st.set_page_config(
 # ── Custom CSS ──────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    /* NYU purple accent */
+    /* green */
     :root {
-        --sky-blue: #37ddfa;
-        --earth-green: #4bc920;
+        --khaki: #ada78a;
+        --sage: #809784;
+        --forest: #4e7157;
+        --ivory: #E6E8E7;
     }
     .stApp > header {background-color: transparent;}
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #37ddfa 0%, #32bd04 100%);
+        background: linear-gradient(180deg, #ada78a 0%, #4e7157 100%);
     }
-    [data-testid="stSidebar"] * {color: white !important;}
+    [data-testid="stSidebar"] * {color: #E6E8E7 !important;}
     [data-testid="stSidebar"] code {
-        background: rgba(255,255,255,0.18) !important;
-        color: #ffd966 !important;
+        background: rgba(230,232,231,0.18) !important;
+        color: #E6E8E7 !important;
         padding: 1px 6px;
         border-radius: 4px;
         font-weight: 600;
     }
     [data-testid="stSidebar"] .stSelectbox label,
-    [data-testid="stSidebar"] .stMultiSelect label {color: white !important;}
+    [data-testid="stSidebar"] .stMultiSelect label {color: #E6E8E7 !important;}
     .metric-card {
-        background: #127087;
-        border-left: 4px solid #57068C;
+        background: #E6E8E7;
+        border-left: 4px solid #4E7157;
         padding: 1rem 1.2rem;
         border-radius: 8px;
         margin-bottom: 0.5rem;
@@ -76,7 +78,7 @@ PAGES = {
 }
 
 with st.sidebar:
-    st.markdown("## 🎓 Car Sustainability Predictor")
+    st.markdown("## Car Sustainability Predictor")
     st.markdown("---")
     selected = st.radio("Navigate", list(PAGES.keys()), label_visibility="collapsed")
     st.markdown("---")
