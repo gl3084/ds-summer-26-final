@@ -215,3 +215,11 @@ def render():
 
             st.success("Successfully logged run to Weights & Biases!")
 
+
+        # Best Model
+        st.divider()
+        st.subheader("🏆 Best Model")
+        st.caption("Evaluation tested under 5-fold cross-validation averaged across 5 trials")
+        best_model = pd.DataFrame({"Hyperparameter": ["Criterion", "Max Tree Depth", "Min Samples per Leaf", "Mean Accuracy"],
+                        "Best Value": ["Gini", 5, 1, "97.03%"]})
+        st.table(best_model)
