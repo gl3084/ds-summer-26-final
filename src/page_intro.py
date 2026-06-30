@@ -4,7 +4,8 @@ import pandas as pd
 def render():
     st.title("Intro Page")
     st.image("assets/car.jpg", use_container_width=True)
-    st.write("This should show up")
+    st.write("Transportation is one of the largest contributors to greenhouse gas emissions worldwide. Our dashboard helps users discover which vehicles produce the lowest carbon emissions and achieve the highest fuel efficiency. Using the Environmental Protection Agency’s official environmental rating system and real-world vehicle specifications, users can compare cars and choose vehicles that would significantly reduce their environmental footprint.
+")
 
     # ── Set up dataset ────────────────────────────────────────────
     df = pd.read_excel("CO2.xlsx")
